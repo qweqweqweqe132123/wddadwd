@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8"/>
+		<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+		<title>ayunami2000's Eaglercraft Server List</title>
+		<script src="embed.min.js"></script>
+		<link href="replit.min.css" rel="stylesheet" type="text/css"/>
+	</head>
+	<body>
+		<nav>
+			<h3>ayunami2000's Eaglercraft Server List</h3>
+		</nav>
+		<div class="content">
+			<p>
+				<b>Click on a server to copy its IP!</b>
+			</p>
+			<br/>
+			&nbsp;
+			<button id="prev">&lt;</button>
+			<button id="page" class="fill">1 / 1</button>
+			<button id="next">&gt;</button>
+			&nbsp;
+			<input id="filter" type="text" style="width: 16em;" placeholder="Search..."/>
+			<br/>
+			<br/>
+			<div id="servers"></div>
+			<br/>
+			<card>
+				<h4>Want your own server?</h4>
+				<span>Make your very own Eaglercraft server for <b>free</b> on Replit!</span>
+				<br/>
+				<br/>
+				<button id="base" class="colored">Repl to fork</button>
+				<button id="base2" class="colored">*NEW* 1.5-based Repl to fork</button>
+				<br/>
+				<br/>
+				<span>Your server will <b>automatically</b> be added to the above list.</span>
+			</card>
+		</div>
+		<script type="text/javascript">
+			const pageSize = 5;
+			const prevBtn = document.getElementById("prev");
+			const nextBtn = document.getElementById("next");
+			const pageBtn = document.getElementById("page");
+			const serversBox = document.getElementById("servers");
+			const baseBtn = document.getElementById("base");
+			const base2Btn = document.getElementById("base2");
+			const filterBox = document.getElementById("filter");
+			baseBtn.onclick = function() {
+				window.open("https://replit.com/@ayunami2000/eaglercraft", "_blank");
+			};
+			base2Btn.onclick = function() {
+				window.open("https://replit.com/@ayunami2000/eaglercraft-old", "_blank");
+			};
+			const promoted = [
+				"wss://sus.shhnowisnottheti.me",
+				"wss://mc.arch.lol",
+				"wss://mc.asspixel.net",
+				"wss://play.zelz.info",
+				"wss://zentic.cc",
+				"wss://asianf4rmer.minecraft.pe",
+				"wss://eaglercraft.ayunami2000.repl.co"
+			];
+			// https://stackoverflow.com/a/12646864/6917520
+			function shuffleArray(array) {
+				for (let i = array.length - 1; i > 0; i--) {
+					const j = Math.floor(Math.random() * (i + 1));
+					[array[i], array[j]] = [array[j], array[i]];
+				}
+			}
+			fetch("/servers/").then(d => d.json()).then(j => {
+				shuffleArray(j);
+				j.unshift(...promoted);
+				let maxPage = Math.ceil(j.length / pageSize);
+				let currPage = 0;
+				const embeds = [];
+				const filtered = [ ...j ];
+				function filterGo(f) {
+					const oldFiltered = [ ...filtered ];
+					filtered.length = 0;
+					for (const ip of j) {
+						if (ip.toLowerCase().includes(f.toLowerCase())) {
+							filtered.push(ip);
+						}
+					}
+					if (filtered.length == oldFiltered.length) {
+						let changed = false;
+						for (const ip of filtered) {
+							if (!oldFiltered.includes(ip)) {
+								changed = true;
+								break;
+							}
+						}
+						if (!changed) {
+							for (const ip of oldFiltered) {
+								if (!filtered.includes(ip)) {
+									changed = true;
+									break;
+								}
+							}
+						}
+						if (changed) {
+							maxPage = Math.ceil(filtered.length / pageSize);
+							currPage = 0;
+							go(0);
+						}
+					} else {
+						maxPage = Math.ceil(filtered.length / pageSize);
+						currPage = 0;
+						go(0);
+					}
+				}
+				function go(pageOffset) {
+					currPage = maxPage == 0 ? 0 : ((currPage + maxPage + pageOffset) % maxPage);
+					pageBtn.innerText = (currPage + 1) + " / " + Math.max(1, maxPage);
+					for (const embed of embeds) {
+						embed.socket.close();
+					}
+					embeds.length = 0;
+					serversBox.innerHTML = "";
+					for (let i = currPage * pageSize; i < Math.min((currPage + 1) * pageSize, filtered.length); i++) {
+						const ip = filtered[i];
+						const motd = document.createElement("div");
+						motd.className = "motd";
+						motd.onclick = function() {
+							window.prompt("IP", ip);
+						};
+						const embed = new ServerEmbed(motd, "640px");
+						embeds.push(embed);
+						embed.ping(ip, null, false, false, true);
+						serversBox.appendChild(motd);
+					}
+				}
+				prevBtn.onclick = function() {
+					go(-1);
+				};
+				nextBtn.onclick = function() {
+					go(1);
+				};
+				pageBtn.onclick = function() {
+					let np = window.prompt("Page (maximum " + maxPage + ")", currPage + 1);
+					if (np != undefined) {
+						np = parseInt(np);
+						if (!isNaN(np)) {
+							go((np - 1) - currPage);
+						}
+					}
+				};
+				go(0);
+				let lastFilter = filterBox.value;
+				filterBox.oninput = function() {
+					if (filterBox.value != lastFilter) {
+						lastFilter = filterBox.value;
+						filterGo(lastFilter);
+					}
+				};
+			});
+		</script>
+	</body>
+</html>
